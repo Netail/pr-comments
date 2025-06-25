@@ -12,54 +12,56 @@ import (
 )
 
 func main() {
-	ghToken := flag.String("token", "", "Github Token")
+	ghToken := flag.String("token", "", "Github token")
+	prNumber := flag.Int("pr", 0, "Pull request number")
+	owner := flag.String("owner", "", "GitHub repository owner")
+	repo := flag.String("repo", "", "GitHub repository name")
+	body := flag.String("body", "", "Body to send")
+	commentId := flag.Int64("comment-id", 0, "Comment ID")
+	bodyIncludes := flag.String("body-includes", "", "Comment ID")
+
+	flag.Parse()
+
 	if len(*ghToken) == 0 {
 		fmt.Println("A GitHub token is required.")
 		os.Exit(1)
 	}
 
-	prNumber := flag.Int("pr", 0, "Pull Request Number")
 	if *prNumber == 0 {
 		fmt.Println("A pull request number is required.")
 		os.Exit(1)
 	}
 
-	repoOwner := flag.String("repoOwner", "", "Github Repo Owner")
-	if len(*repoOwner) == 0 {
-		fmt.Println("A repoOwner is required.")
+	if len(*owner) == 0 {
+		fmt.Println("A repository owner is required.")
 		os.Exit(1)
 	}
 
-	repo := flag.String("repo", "", "Github Repo")
 	if len(*repo) == 0 {
 		fmt.Println("A repo is required.")
 		os.Exit(1)
 	}
 
-	body := flag.String("body", "", "Body to send")
 	if len(*body) == 0 {
 		fmt.Println("A body is required.")
 		os.Exit(1)
 	}
 
-	commentId := flag.Int64("comment-id", 0, "Comment ID")
-	bodyIncludes := flag.String("body-includes", "", "Comment ID")
-
 	client := github.NewClient(nil).WithAuthToken(*ghToken)
 
 	if *commentId == 0 && len(*bodyIncludes) > 0 {
-		*commentId = findComment(client, *repoOwner, *repo, *prNumber, *bodyIncludes)
+		*commentId = findComment(client, *owner, *repo, *prNumber, *bodyIncludes)
 	}
 
 	if *commentId == 0 {
-		createComment(client, *repoOwner, *repo, *prNumber, *body)
+		createComment(client, *owner, *repo, *prNumber, *body)
 	} else {
-		updateComment(client, *repoOwner, *repo, *commentId, *body)
+		updateComment(client, *owner, *repo, *commentId, *body)
 	}
 }
 
-func createComment(client *github.Client, repoOwner string, repo string, prNumber int, comment string) {
-	_, _, err := client.Issues.CreateComment(context.Background(), repoOwner, repo, prNumber, &github.IssueComment{Body: github.Ptr(comment)})
+func createComment(client *github.Client, owner string, repo string, prNumber int, comment string) {
+	_, _, err := client.Issues.CreateComment(context.Background(), owner, repo, prNumber, &github.IssueComment{Body: github.Ptr(comment)})
 
 	if err != nil {
 		fmt.Println(err.Error())
@@ -69,8 +71,8 @@ func createComment(client *github.Client, repoOwner string, repo string, prNumbe
 	fmt.Println("Comment created...")
 }
 
-func updateComment(client *github.Client, repoOwner string, repo string, commentId int64, comment string) {
-	_, _, err := client.Issues.EditComment(context.Background(), repoOwner, repo, commentId, &github.IssueComment{Body: github.Ptr(comment)})
+func updateComment(client *github.Client, owner string, repo string, commentId int64, comment string) {
+	_, _, err := client.Issues.EditComment(context.Background(), owner, repo, commentId, &github.IssueComment{Body: github.Ptr(comment)})
 
 	if err != nil {
 		fmt.Println(err.Error())
@@ -80,8 +82,8 @@ func updateComment(client *github.Client, repoOwner string, repo string, comment
 	fmt.Println("Comment updated...")
 }
 
-func findComment(client *github.Client, repoOwner string, repo string, prNumber int, bodyIncludes string) int64 {
-	comments, _, err := client.Issues.ListComments(context.Background(), repoOwner, repo, prNumber, &github.IssueListCommentsOptions{})
+func findComment(client *github.Client, owner string, repo string, prNumber int, bodyIncludes string) int64 {
+	comments, _, err := client.Issues.ListComments(context.Background(), owner, repo, prNumber, &github.IssueListCommentsOptions{})
 
 	if err != nil {
 		fmt.Println(err.Error())
